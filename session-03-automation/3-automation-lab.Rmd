@@ -117,7 +117,9 @@ Let's look at our penguin dataset again as an example.
 ```{r}
 library(palmerpenguins)
 library(tidyverse)
-data(penguins)
+
+
+
 ```
 
 :::alert-info
@@ -125,7 +127,20 @@ data(penguins)
 Group the penguins by species and nest the remaining data into a column called data. Save the result in a new dataframe called `penguins_nested`:
 
 ```{r, echo= FALSE, eval= FALSE}
+?case_when()
 # Your code here: Use group_by() and nest()
+penguins_nested <- penguins_raw %>%
+  group_by(Species) %>%
+  mutate( Bill_Length = `Culmen Length (mm)` , # simplify column name for later task
+    Species = case_when( #simplifing species names 
+    Species == "Adelie Penguin (Pygoscelis adeliae)" ~ "Adelie",
+    Species == "Gentoo penguin (Pygoscelis papua)" ~ "Gentoo",
+    Species == "Chinstrap penguin (Pygoscelis antarctica)" ~ "Chinstrap"
+  )) %>%
+  nest()
+
+penguins_nested
+
 ```
 :::
 :::alert-info
@@ -136,8 +151,16 @@ Write a function called `summarize_bills` that takes a dataframe and returns:
 - `max_bill_length`: max bill length (handle NAs)
 
 ```{r, echo= FALSE, eval= FALSE}
-summarize_bills <- function(df) {
+  summary(penguins_raw)
+  
+summarize_bills <- function(df) { 
   # Your code here: use summarise() to create the three variables
+  df %>%
+  summarise(
+  count = nrow(df),
+  mean_bill_length = mean(Bill_Length, na.rm = T),
+  max_bill_length = max(Bill_Length, na.rm = T)
+)
 }
 
 # Test your function on the first species
@@ -151,7 +174,9 @@ Add a new column called `bill_stats` to `penguins_nested` that applies your `sum
 ```{r, echo= FALSE, eval= FALSE}
 penguins_nested <- penguins_nested %>%
   # Your code here: mutate() with map()
-
+mutate(
+ bill_stats = map(data, summarize_bills)
+  )
 # Look at the result
 penguins_nested
 ```
@@ -164,7 +189,8 @@ Create a clean summary table by selecting just `species` and `bill_stats`, then 
 ```{r, echo= FALSE, eval= FALSE}
 penguins_summary <- penguins_nested %>%
   # Your code here: select() and unnest()
-
+select(Species,bill_stats) %>%
+  unnest(bill_stats)
 penguins_summary
 ```
 :::
@@ -174,10 +200,39 @@ penguins_summary
 Write the complete pipeline from the original `penguins` data to the final summary in one go:
 
 ```{r, echo= FALSE, eval= FALSE}
-final_summary <- penguins %>%
-  # Your complete pipeline here
+final_summary <- penguins_raw %>%
+  select(Species, `Culmen Length (mm)`) %>%
+  rename(bill_length = `Culmen Length (mm)`) %>% 
+  group_by(Species) %>%
+  nest() %>% 
+  mutate(bill_stats =
+           map(data,
+               \(df){  df %>%
+                   summarise(
+                     count = nrow(df),
+                     mean_bill_length = mean(bill_length, na.rm = T),
+                     max_bill_length = max(bill_length, na.rm = T))
+                 })
+         ) %>%
+  select(Species, bill_stats) %>%
+  unnest(bill_stats)
 
 final_summary
+
+#trying to replicate the results without nesting or function...
+final_summary2 <- penguins_raw %>%
+  select(Species, `Culmen Length (mm)`) %>%
+  rename(bill_length = `Culmen Length (mm)`) %>% 
+  group_by(Species) %>%
+  summarise(
+    count = n(),
+    mean_bill_length = mean(bill_length, na.rm = T),
+    max_bill_length = max(bill_length, na.rm = T)
+    )
+final_summary2
+
+
+#so I literally don't see the point of nesting..??? 
 ```
 :::
 # 2. Automation of Projects `r emo::ji("robot_face")`
@@ -222,6 +277,8 @@ To work with this example I have created all the files and folders as above in t
 :::alert-info
 **Exercise 1**
 Can you add a new script that creates a summary table of the words spoken by Species and Film and saves it to the `outputs/tables/` folder? You can use the `dplyr` package to create the summary table and the `write_tsv()` function to save it as a .tsv file. Don't forget to source your new script in the `Makefile.R` script.
+
+
 :::
 
 :::alert-info
@@ -232,6 +289,9 @@ Update the `Makefile.R` script so that it also clears out the table you created 
 :::alert-info
 **Exercise 3**
 Do your new script and the 03-plot.R script need to be run sequentially? How could we think about these two script in terms of the pipeline graphs you saw in the lecture?
+
+*Answer: yes coz script 3 imported the clean data...so without running script 3 first, script 4 wouldn't run but I guess can also juts combine the two? *
+
 :::
 
 ## Scheduling with `cronR` and `taskscheduleR` `r emo::ji("calendar")`
