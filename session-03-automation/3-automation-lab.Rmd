@@ -310,24 +310,28 @@ When working with file paths in R, you can use either relative or absolute paths
 
 ## Scheduling with `cronR` on Mac and Linux `r emo::ji("alarm_clock")`
 ```{r eval = FALSE}
-# install.packages("cronR")
+install.packages("cronR")
+install.packages("here")
 library(cronR)
+library(here)
+
 # define the path to your Master R script
 cmd <- cron_rscript(here::here("session-03-automation","lotr_project","scripts","Makefile.R"))
 # add a new cron job to run the script every day at 1am
 cron_add(
-  command = cmd,
+  command = cmd, #is the path to Master R script defined above
   frequency = "daily",
   at = "01:00",
   id = "lotr_pipeline_daily",
-  description = "Daily LOTR analysis pipeline"
+  description = "Daily LOTR analysis pipeline",
+  ask = FALSE #prevents the "Are you sure?" prompt
 )
 
 # List all scheduled tasks
 cron_ls()
-
 # To remove a scheduled task
-# cron_rm(id = "lotr_pipeline_daily")
+cron_rm(id = "lotr_pipeline_daily")
+
 ```
 `
 ### Example cron schedule expressions
@@ -418,19 +422,19 @@ Potential problems are communicated via "conditions" (e.g., errors, warnings, an
 The following function that calculates the geodesic distance between two points specified by radian latitude/longitude using the Haversine formula (hf); taken from [here](https://goo.gl/GezNGB), as an example. We've inserted some bugs here... `r emo::ji("bug")`
 
 ```{r eval = FALSE}
-geod_dist <- function(lat1, lon1, lat2, lon2, earth.radius = 6371) {
+geod_dist <- function(lat1, lon1, lat2, lon2, earth_radius = 6371) {
   
   # from degrees to radians
   deg2rad <- function(deg) return(deg*pi/180)
   lon1 <- deg2rad(lon1)
   lat1 <- deg2rad(lat1)
-  lon2 <- deg2rad(long2)
+  lon2 <- deg2rad(lon2)
   lat2 <- deg2rad(lat2)
   
   # calculation
   delta.long <- (lon2 - lon1)
   delta.lat <- (lat2 - lat1)
-  a <- sin(delta.lat/2)^2 + cos(lat1) * cos(lat2) * sing(delta.long/2)^2
+  a <- sin(delta.lat/2)^2 + cos(lat1) * cos(lat2) * sin(delta.long/2)^2
   c <- 2 * asin(min(1,sqrt(a)))
   d = earth_radius * c
   return(d)
