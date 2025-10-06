@@ -111,7 +111,7 @@ stringr::str_view(x, "a")
 ```{r, echo=FALSE}
 words <- c("running", "jumps", "swimming", "biking", "skates", "hiking", "fishing", "reading")
 
-# Your code here
+stringr::str_replace_all(words, c("ing" = "er"))
 ```
 :::
 
@@ -119,6 +119,8 @@ words <- c("running", "jumps", "swimming", "biking", "skates", "hiking", "fishin
 **Excercise 2**: Can you find how many words in the inbuilt `stringr::words` vector contain the sequence "ise"?
 ```{r, echo=FALSE}
 # Your code here
+sum(str_detect(words, "ise"))
+str_count(words, "ise")
 
 # You can access the words vector with: stringr::words
 ```
@@ -161,6 +163,8 @@ Simpson,Homer5553642Dr. Julius Hibbert"
 :::alert-info
 **Excercise**:
 Can you describe in words a pattern to use which could extract only names and only phone numbers from the string above?
+
+Answer: Only names, one or more letters then might or might not have space and/or comma, then one or more letters wl might or might not period. Only number, 3 digits, wither dash or space, then might or might not have another 3 digits plus a dash than 4 digits. 
 :::
 
 ---
@@ -246,7 +250,10 @@ unlist(str_extract_all(example.obj, fixed(".")))
 :::alert-info
 **Exercise 1**: Can you find all the words in `stringr::words` that end in "ing" or "ise"?
 ```{r}
-# Your code here
+str_subset(
+  words,
+  pattern = "ing$|ise$"
+)
 ```
 :::
 
@@ -254,7 +261,10 @@ unlist(str_extract_all(example.obj, fixed(".")))
 **Exercise 2**: Can you find every letter or number followed by a dot in `example.obj`?
 
 ```{r}
-# Your code here
+str_extract_all(
+  example.obj,
+  pattern = "[:alnum:]\\."
+)
 ```
 :::
 
@@ -276,13 +286,13 @@ Some character classes are pre-defined. They are very convenient to efficiently 
   | `[:digit:]`  | Digits: 0 1 2 3 4 5 6 7 8 9 | \\d |
   | `[:lower:]`  | Lower-case characters: a-z | \\l |
   | `[:upper:]`  | Upper-case characters: A-Z | \\u |
-  | `[:alpha:]`  | Alphabetic characters: a-z and A-Z | \\w |
+  | `[:alpha:]`  | Alphabetic characters: a-z and A-Z | \\w | *Actually \\w is not shorthand for letters coz it's word character including digits, it could be shorthand for [:alnum:]*
   | `[:alnum:]`  | Digits and alphabetic characters | |
   | `[:punct:]`  | Punctuation characters: `.`, `,`, `;`, etc. | |
   | `[:graph:]`  | Graphical characters: `[:alnum:]` and `[:punct:]` | |
   | `[:blank:]`  | Blank characters: Space and tab | \\s |
   | `[:space:]`  | Space characters: Space, tab, newline, and others | \\_s |
-  | `[:print:]`  | Printable characters: `[:alnum:]`, `[:punct:]` and `[:space:]`| \\p |
+  | `[:print:]`  | Printable characters: `[:alnum:]`, `[:punct:]` and `[:space:]`|  |
 
 
 ### Character classes in action
@@ -314,14 +324,23 @@ unlist(str_extract_all(example.obj, "[12-]"))
 :::alert-info
 **Exercise 3**: Can you make a regex that matches only numbers followed by a dot in `example.obj`? How about letters followed by a dot?
 ```{r}
-# Your code here
+str_extract_all(example.obj,
+                pattern = "\\d\\.")
+
+str_extract_all(example.obj,
+                pattern = "[:alpha:]\\.")
+
 ```
 :::
 
 :::alert-info
 **Exercise 4**: Can you find all words in `stringr::words` that end with "ed" but not with "eed"?
 ```{r}
-# Your code here
+str_subset(
+  words,
+  pattern ="e{1}d$"
+)
+
 ```
 :::
 
@@ -356,7 +375,13 @@ str_extract(example.obj, "A.+?sentence")
 **Exercise 5** How many words are there in `stringr::words` that end with a "y" and are exactly 3 characters long?
 
 ```{r}
-# Your code here
+str_count(
+  words,
+  pattern = "^[:alnum:]{2}y$"
+  )
+
+words
+
 ```
 :::
 :::alert-info
@@ -364,7 +389,13 @@ str_extract(example.obj, "A.+?sentence")
 
 Hint: `\\b` can be use to match a word boundary, i.e. the start or end of a word.
 ```{r}
-# Your code here
+str_extract_all(
+  example.obj,
+  pattern = "\\b[:alpha:]{1,6}\\b"
+)
+
+example.obj
+
 ```
 :::
 
@@ -377,7 +408,9 @@ The first pattern is defined with round brackets, as in `(pattern)`. We then ref
 **Example:** Match the first letter, then anything until you ﬁnd the first letter again (not greedy).
 
 ```{r}
-str_extract(example.obj, "([[:alpha:]]).+?\\1")
+str_extract(example.obj2, "([[:alpha:]]).+?\\1")
+example.obj2 <- "1. A small sentence. - 2. Another tiny sentence. A" 
+
 ```
 
 ## Useful links
@@ -399,12 +432,18 @@ Finally a word of caution at the end: Since regular expressions are extremely po
 
 1. Can you explain what these regular expressions match?
 
-      a. `"\\$[0-9]+"`
+      a. `"\\$[0-9]+"` 
+      Answer: price 
       a. `"^.*$"`
+      Answer: anything 0 or more times 
       a. `"\\d{4}-\\d{2}-\\d{2}"`
+      Answer: 2018-05-19
       a. `".*?\\.txt$"`
+      Answer:any text file
       a. `"\\\\{4}"`
+      Answer: four backlashes
       a. `"b[a-z]{1,4}"`
+      Answer: a words starts with b with 1-4 letters like baba
 
 ```{r}
 # Example
@@ -424,6 +463,16 @@ str_view(
 
 ```{r}
 emails <- c('456123@students.hertie-school.org', 'h.simpson@students.hertie-school.org')
+
+str_extract_all(
+  emails,
+  pattern = "([[:alnum:].]+)@students\\.hertie-school\\.org"
+)
+
+str_extract_all(
+  emails,
+  pattern = "([[:alnum:].]+)@[[:alpha:].-]+"
+)
 ```
 
 ---
@@ -432,6 +481,17 @@ emails <- c('456123@students.hertie-school.org', 'h.simpson@students.hertie-scho
 
 ```{r}
 ex_string <- "555-1239Moe Szyslak(636) 555-0113Burns, C. Montgomery555-6542Rev. Timothy Lovejoy555 8904Ned Flanders636-555-3226Simpson, Homer5553642Dr. Julius Hibbert"
+
+#numbers
+str_extract_all(
+  ex_string,
+  pattern = "(\\(?\\d{3}\\)?(-| ))*\\d{3}(-| )*\\d{4}")
+
+#names 
+str_extract_all(
+  ex_string,
+  pattern = "[[:alpha:]]+( |[[:punct:]])[[:alpha:]. ]+")
+
 ```
 
 ---
@@ -440,6 +500,10 @@ ex_string <- "555-1239Moe Szyslak(636) 555-0113Burns, C. Montgomery555-6542Rev. 
 
 ```{r}
 secret <- "clcopCow1zmstc0d87wnkig7OvdicpNuggvhryn92Gjuwczi8hqrfpRxs5Aj5dwpn0TanwoUwisdij7Lj8kpf03AT5Idr3coc0bt7yczjatOaootj55t3Nj3ne6c4Sfek.r1w1YwwojigOd6vrfUrbz2.2bkSnbhzgv4O9i05zLcropwVgnbEqoD65fa1otf.b7wIm24k6t3s9zqe5fy89n6Td5t9kc4f905gmc4gxo5nhk!gr"
+
+str_c(str_extract_all(secret, "[A-Z]")[[1]], collapse = "")
+
+
 ```
 
 
