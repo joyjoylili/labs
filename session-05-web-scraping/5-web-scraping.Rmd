@@ -1,8 +1,8 @@
 ---
 title: "Web Scraping"
 subtitle: "Collecting Data from the Web using R"
-author: "Carmen Garro & Sebastian Ramirez-Ruiz"
-date: "(Fall 2024) Introduction to Data Science"
+author: "Killian Conyngham & Carol Sobral"
+date: "(Fall 2025) Introduction to Data Science"
 output: 
     rmdformats::robobook:
     toc: TRUE
@@ -105,7 +105,7 @@ knitr::include_graphics("pics/workflow.png")
 
 # Scraping static sites with `rvest` `r emo::ji("tractor")`
 
-Who doesn't love Wikipedia? Let's use this as our first, straight forward test case.
+Who doesn't love Wikipedia? Let's use this as our first, straight forward test case. Let's take a look at the [Cologne page](https://en.wikipedia.org/wiki/Cologne). 
 
 :::{.alert-info .pad-box}
 
@@ -114,6 +114,7 @@ Who doesn't love Wikipedia? Let's use this as our first, straight forward test c
 For illustrative purposes, in this tutorial we will parse the page source directly from the live webpage. You should know that the best practice to ensure **reproducibility** would be to download the HTML file locally. In that way, you can avoid issues arising from changes in the content or structure of the source.
 
 :::
+
 
 ---
 
@@ -137,74 +138,33 @@ parsed_url <- rvest::read_html("https://en.wikipedia.org/wiki/Cologne",
 
 ```{r}
 parsed_url |> 
-  rvest::html_element(xpath = '//p[(((count(preceding-sibling::*) + 1) = 178) and parent::*)]') |> 
-  rvest::html_text()
-
-parsed_url |> 
   rvest::html_element(xpath = '//p[76]') |> 
   rvest::html_text()
 
-
 ```
 
-Another way of writing this in a more intuitive way:
+There are many ways to get the same content:
 
 ```{r}
-# this one is more intuitive
+# Method 1: Semantic/content-based selection
+# Finds the h3 heading with id "Carnival", then grabs the paragraph that follows it
+# More robust because it relies on the content structure (headings and their IDs)
+# Will still work even if Wikipedia adds/removes other content on the page
 parsed_url |> 
   rvest::html_element(xpath = '//div[contains(@class, "mw-heading mw-heading3")]//h3[@id="Carnival"]/following::p') |> 
   rvest::html_text()
 
-#this one is not specific enough
-parsed_url |> 
-  rvest::html_element(xpath = '//div[contains(@class, "mw-heading mw-heading3")]//*//following::p') |> 
-  rvest::html_text()
 
-# copy xpath
-# right click on element and copy full XPath
-#"/html/body/div[2]/div/div[3]/main/div[3]/div[3]/div[1]/p[76]"
-
+# Method 2: Absolute path selection  
+# Goes to the exact 76th paragraph in a very specific location in the HTML tree
+# Super fragile - breaks if Wikipedia changes anything above this paragraph
+# Like giving directions "take the 76th door" instead of "go to the room labeled Carnival"
 parsed_url |> 
   rvest::html_element(xpath = "/html/body/div[2]/div/div[3]/main/div[3]/div[3]/div[1]/p[76]") |> 
   rvest::html_text()
 ```
 
-This is because the html structure has the desired paragraph which is preceded by an [element div that contains the "mw-heading mw-heading3" class and is then followed by a header with "Carnival# as id]. Everything that is in square brakets is what comes before the p element we want as an output.
 
-
-
-
-```html
-<!DOCTYPE html> 
-  <html> 
-    <head>
-      ...
-  <body>
-      ...
-      <div class="mw-heading mw-heading3">
-          <h3 id="Carnival">
-            Carnival
-          </h3>
-          ...
-      </div>
-      <p>
-        "The"
-        <a href="/wiki/Cologne_carnival">Cologne carnival</a>
-        " is one of the largest street festivals in Europe. In Cologne, the carnival season officially starts on 11 November at 11 minutes past 11&nbsp;a.m. with the proclamation of the new Carnival Season, and continues until "
-        <a href="/wiki/Ash_Wednesday" title="Ash Wednesday">Ash Wednesday</a>
-        ". However, the so-called "Tolle Tage" (crazy days) do not start until "
-        <i>Weiberfastnacht</i>
-        " (Women's Carnival) or, in dialect, "
-        <i>Wieverfastelovend</i>
-        ", the Thursday before Ash Wednesday, which is the beginning of the street carnival. Zülpicher Strasse and its surrounding, Neumarkt square, Heumarkt and all bars and pubs in the city are crowded with people in costumes dancing and drinking in the streets. Hundreds of thousands of visitors flock to Cologne during this time. Generally, around a million people celebrate in the streets on the Thursday before Ash Wednesday."
-        <sup id="cite_ref-73" class="reference">...</sup>
-      </p>
-      ...
-  </body>
-</html>
-```
-
-You can see that even though there are other elements between the <p>...</p>, it is taking everything that is betweem these two tagnames.
 
 ---
 
@@ -217,14 +177,21 @@ In here we present two ways:
 
 ---
 
-**Option 1.** On your page of interest, go to a table that you'd like to scrape. Our favorite browser for web scraping is Google Chrome, but others work as well. On Chrome, you go in `View > Developer > inspect elements` or right click on the element you are interested and go to `Inspect`. 
+**Option 1.** On your page of interest, go to a section/table that you'd like to scrape. Our favorite browser for web scraping is Google Chrome, but others work as well. On Chrome, you go in `View > Developer > inspect elements` or right click on the element you are interested and go to `Inspect`. 
 
 If you hover over the  code on the right, you should see boxes of different colors framing different elements of the page. Once the part of the page you would like to scrape is selected, right click on the HTML code and `Copy > Copy XPath`. That's it.
 
-Let's try it with the [Cologne Wikipedia page](https://en.wikipedia.org/wiki/Cologne#Carnival)
+Let's try it with the [Cologne Wikipedia page.](https://en.wikipedia.org/wiki/Cologne#Carnival)
 
 ```{r, fig.align='center', echo=F, out.width = "90%"}
 knitr::include_graphics("pics/inspect.png")
+```
+
+
+```{r}
+parsed_url |> 
+  rvest::html_elements(xpath = '//*[@id="mw-content-text"]/div[1]/p[76]') |> 
+  rvest::html_text()
 ```
 
 ---
@@ -235,13 +202,21 @@ knitr::include_graphics("pics/inspect.png")
 knitr::include_graphics("pics/selector.png")
 ```
 
-You can now de-select everything that is irrelevant to you by clicking it again (it then turns red). Final step, then just click the XPath button at the bottom of the browser window. Make sure to use single quotation marks with this XPath!
+Now click on any irrelevant elements to deselect them (they'll turn red when deselected). Scroll through the entire page to make sure you're only selecting what you actually want. Once you're happy with your selection, click the XPath button at the bottom of the `SelectorGadget` window to get the XPath expression. Important: Use single quotation marks when you paste this XPath into your R code, since the XPath itself contains double quotes.
 
 ```{r, fig.align='center', echo=F, out.width = "90%"}
 knitr::include_graphics("pics/selector2.png")
 ```
 
+```{r}
+parsed_url |> 
+  rvest::html_elements(xpath = '//p[(((count(preceding-sibling::*) + 1) = 179) and parent::*)]') |> 
+  rvest::html_text()
+```
+
 ---
+
+### Another Example
 
 Let's repeat step 2 and 3 with another example using [New York Public Library's best book recommendations for 2021](https://www.nypl.org/books-more/recommendations/best-books/adults?year=2021). `r emo::ji("cap")`
 
@@ -267,7 +242,6 @@ body_nodes |>
  rvest::html_children()
 ```
 
-play with that yourself if you like...
 
 ---
 
@@ -279,26 +253,24 @@ title <- nypl100 |>
   rvest::html_elements(xpath = '//ul/li/div/div/h4') |> 
   rvest::html_text2()
 
+
 # CSS
 author <- nypl100 |> 
   rvest::html_elements(css = '.spbb-card__byline--grid') |> 
   rvest::html_text2()
+
 
 # Combination of XPath with CSS
 summary <- nypl100 |> 
   rvest::html_elements(xpath = '//*[contains(concat( " ", @class, " " ), concat( " ", "spbb-card__description--grid", " " ))]') |> 
   rvest::html_text2()
 
-# Another way of doing it
+
+# Select elements by class name using XPath
+# Finds all elements where the class attribute contains "spbb-card__description--grid"
 summary <- nypl100 |> 
   rvest::html_elements(xpath = '//*[contains(@class,"spbb-card__description--grid")]') |> 
   rvest::html_text()
-
-# this one does not work
-# summary <- nypl100 |> 
-#   rvest::html_elements(xpath = '.spbb-card__description spbb-card__description--grid') |> 
-#   rvest::html_text2()
-
 
 ```
 
@@ -309,38 +281,55 @@ summary <- nypl100 |>
 knitr::kable(data.frame(title, author, summary) |> head(3))
 ```
 
+
+:::{.alert-info .pad-box}
+
+****Exercise 1**** 🏋 
+
+Your task is to extract the second paragraph from the "Roman Cologne" section of the Wikipedia page on Cologne any way you like. Use the `parsed_url` object we created earlier. 
+::: 
+
+```{r}
+# YOUR ANSWER HERE
+
+```
+
+
+
+
 ---
 
 ## Scraping HTML tables `r emo::ji("rocket")`
 
-Oftentimes, we would like to scrape tabular data from the web. This is even easier in `rvest`!
+Oftentimes, we would like to scrape tabular data from the web. 
 
 ```{r, fig.align='center', echo=F, out.width = "85%"}
 knitr::include_graphics("pics/wiki_spotify.png")
 ```
 
-Let's take a look at the [List of Spotify streaming records](https://en.wikipedia.org/w/index.php?title=List_of_members_of_the_European_Council) Wikipedia entry.
+Let's take a look at the [List of Spotify streaming records](https://en.wikipedia.org/wiki/List_of_Spotify_streaming_records) Wikipedia entry.
 
 
 ```{r}
 # load html
-url_p <- rvest::read_html("https://en.wikipedia.org/w/index.php?title=List_of_Spotify_streaming_records&oldid=1249839087")
+url_p <- rvest::read_html("https://en.wikipedia.org/wiki/List_of_Spotify_streaming_records")
 
 # extract table
 spotify_table_raw <- rvest::html_table(url_p, header = T) |> # extracts all <table> elements from page
-  purrr::pluck(1) |> # get tablein nth place (1)
+  purrr::pluck(1) |> # get table in nth place (1)
   janitor::clean_names() # clean the table names
 
-spotify_table_raw # this is what we would get
+# inspect the table we got
+head(spotify_table_raw)
+tail(spotify_table_raw)
 
-
-# clean up table a bit (for further analyses?)
+# clean up table a bit 
 spotify_table <- spotify_table_raw |>
-  dplyr::mutate(song = stringr::str_remove_all(song, '\"'), #remove quotation marks from song titles
-                streams_billions = as.numeric(streams_billions) #make stream_billions a numeric variable
+  dplyr::mutate(song = stringr::str_remove_all(song, '\"'), # remove quotation marks from song titles
+                streams_billions = as.numeric(streams_billions) # make stream_billions a numeric variable
                 ) |> 
-  dplyr::slice(1:100) |> # drop dangling row with "As of date"
-  dplyr::select(-ref) 
+  dplyr::slice(1:100) |> # drop last row
+  dplyr::select(-ref) # drop ref col
 
 head(spotify_table)
 ```
@@ -348,18 +337,22 @@ head(spotify_table)
 
 :::{.alert-info .pad-box}
 
-🏋 **Let's do an exercise**
+**Exercise 2**
 
 Can you tell us:
 
 a) What does it take to be within the top-100 most streamed songs on Spotify? (i.e., how many streams?)
 b) Which artists have the highest number of most streamed songs? (Note that the `artist_s` string might contain multiple unique artists)
 
+
 *Bonus at home 🏠*
 
 c) Which artists have the most cumulative streams?
 :::
 
+```{r}
+# YOUR ANSWER HERE
+```
 
 ---
 
@@ -385,7 +378,7 @@ volurl <- as.character(105:110) # volumes 105 to 110
 
 # issue number
 issueurl <- c(paste0("0", 1:9), 10:12) # 01 to 12 maximum number of issues in a volume
-# (there is totally a more efficient way of dealing with the inconsistency, but
+# (there is a more efficient way of dealing with the inconsistency, but
 # let's try to keep this simple
 
 combinations <- tidyr::expand_grid(volurl, issueurl)
@@ -405,7 +398,7 @@ names_for_files <- combinations |>
 
 ```{r, eval=F}
 here()
-tempwd <- here::here("session-06-web-scraping/data/jstatsoftStats")
+tempwd <- here::here("session-05-web-scraping/data/jstatsoftStats")
 #here from here package creates a character string that represents a path to a directory
 
 dir.create(tempwd, recursive = TRUE)
@@ -474,12 +467,10 @@ authors <- character()
 title <- character()
 datePublish <- character()
 
-# session goes here
-
 # then run the loop
 for (i in seq_along(list_files_path)) {
   
-  html_out <- rvest::read_html(list_files_path[i])
+   html_out <- rvest::read_html(list_files_path[i], encoding = "UTF-8")
     
   authors[i] <- html_out |> 
     rvest::html_elements(xpath = '//*[contains(concat( " ", @class, " " ), concat( " ", "authors_long", " " ))]//strong') |> 
@@ -512,13 +503,6 @@ head(dat)
 
 You see, scraping data from multiple pages is no problem in R. Most of the brain work often goes into developing a scraping strategy and tidying the data, not into the actual downloading/scraping part.
 
-Scraping is also possible in much more complex scenarios! Watch out for workshop presentations on 
-
-* Text analytics with `quanteda`
-* Regular expressions with `stringr`
-* Data cleaning with `janitor`
-
-and many more `r emo::ji("star_struck")`
 
 ---
 
@@ -627,8 +611,8 @@ query <- 'films'
 httr::GET(paste0(baseurl, query)) |> # Make API call
   httr::content(as = 'text') |> # extract content as text
   jsonlite::fromJSON() |> # convert JSON data into R object (nested list)
-  purrr::pluck(4) # extract from index inside nested list (4th place corresponding to "results" in the payload)
-  
+  purrr::pluck(4) |> # extract from index inside nested list (4th place corresponding to "results" in the payload) 
+  select(1:3) # select cols 1-3
 ```
 
 ```{r}
@@ -711,7 +695,7 @@ GET(glue::glue(baseurl, query, "?", api_key),
   xml_text()
 ```
 
-Retrieving data from API's using `httr` can at times be quite tiresome. Luckily, there are many R libraries that make it much easier to retrieve data from APIs. Here is a [list of ready-made R bindings to web-APIs](https://ropensci.org/packages/data-access/). Actually, even the starwars API we queried earlier has its own R package, `rwars`!
+Retrieving data from API's using `httr` can at times be quite tiresome. Luckily, there are many R libraries that make it much easier to retrieve data from APIs. Here is a [list of ready-made R bindings to web-APIs](https://ropensci.org/packages/data-access/). Actually, even the Star Wars API we queried earlier has its own R package, `rwars`!
 
 ---
 
@@ -719,7 +703,7 @@ Retrieving data from API's using `httr` can at times be quite tiresome. Luckily,
 
 This tutorial drew heavily on Simon Munzert's book [Automated Data Collection with R](http://r-datacollection.com/) and related [course materials](https://github.com/simonmunzert/web-scraping-with-r-extended-edition). We also used an [example](https://keith-mcnulty.medium.com/how-to-scrape-the-web-in-r-d77b11fca40d) from Keith McNulty's blog post on tidy web scraping in R. For the regex part, we used examples from the string manipulation section in Hadley Wickham's [R for Data Science](https://r4ds.hadley.nz/strings) book.
 
-This script was drafted by [Tom Arendt](https://github.com/tom-arend) and [Lisa Oswald](https://lfoswald.github.io/), with contributions by [Steve Kerr](https://smkerr.github.io/), [Hiba Ahmad](https://github.com/hiba-ahmad), [Carmen Garro](https://github.com/cgarroca), and [Sebastian Ramirez-Ruiz](https://seramirezruiz.github.io/).
+This script was drafted by [Tom Arendt](https://github.com/tom-arend) and [Lisa Oswald](https://lfoswald.github.io/), with contributions by [Steve Kerr](https://smkerr.github.io/), [Hiba Ahmad](https://github.com/hiba-ahmad), [Carmen Garro](https://github.com/cgarroca), [Sebastian Ramirez-Ruiz](https://seramirezruiz.github.io/),[Killian Conyngham](https://github.com/Killian-Conyngham) and [Carol Sobral](https://github.com/cbsobral).
 
 
 
